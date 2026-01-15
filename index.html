@@ -1,0 +1,872 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Digital Footprint | Real-time Analysis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #7c3aed;
+            --terminal: #00ff00;
+            --github: #6e5494;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Mono', 'Cascadia Code', 'Monaco', monospace;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        h1 {
+            color: var(--terminal);
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary);
+            box-shadow: 0 12px 20px rgba(37, 99, 235, 0.2);
+        }
+        
+        .card-title {
+            font-size: 1.4rem;
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .real-data { border-left: 5px solid var(--primary); }
+        .simulated-data { border-left: 5px solid var(--secondary); }
+        .github-data { border-left: 5px solid var(--github); }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .tag-real { background: var(--primary); color: white; }
+        .tag-sim { background: var(--secondary); color: white; }
+        .tag-github { background: var(--github); color: white; }
+        
+        .data-point {
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .data-point:hover {
+            border-left-color: var(--terminal);
+            background: rgba(15, 23, 42, 0.8);
+        }
+        
+        .data-point strong {
+            color: #cbd5e1;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .loading {
+            color: #94a3b8;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        .visualization-container {
+            grid-column: span 2;
+            margin-top: 20px;
+        }
+        
+        .visualization-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        canvas {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            display: block;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .disclaimer {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .visualization-container {
+                grid-column: span 1;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .data-grid .data-point {
+            margin: 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background: #10b981; }
+        .status-offline { background: #ef4444; }
+        
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .copy-btn:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌐 DIGITAL FOOTPRINT ANALYZER</h1>
+        <p class="subtitle">Real-time analysis from GitHub Pages • All data is processed locally</p>
+    </div>
+    
+    <div class="dashboard">
+        <!-- NETWORK & LOCATION -->
+        <div class="card real-data">
+            <h2 class="card-title">📍 NETWORK & LOCATION <span class="tag tag-real">REAL</span></h2>
+            <div id="networkData" class="loading">Fetching network data...</div>
+        </div>
+        
+        <!-- BROWSER & SYSTEM -->
+        <div class="card real-data">
+            <h2 class="card-title">🖥️ BROWSER & SYSTEM <span class="tag tag-real">REAL</span></h2>
+            <div id="browserData"></div>
+        </div>
+        
+        <!-- GITHUB DATA -->
+        <div class="card github-data">
+            <h2 class="card-title">🐙 GITHUB REPOSITORY <span class="tag tag-github">REAL</span></h2>
+            <div id="githubData" class="loading">Connecting to GitHub API...</div>
+        </div>
+        
+        <!-- SIMULATED DATA -->
+        <div class="card simulated-data">
+            <h2 class="card-title">🎭 INFERRED PROFILE <span class="tag tag-sim">SIMULATED</span></h2>
+            <div id="simulatedData" class="loading">Generating digital profile...</div>
+        </div>
+        
+        <!-- VISUALIZATION -->
+        <div class="card visualization-container">
+            <div class="visualization-header">
+                <h2 class="card-title">📊 LIVE VISUALIZATION</h2>
+                <div class="controls">
+                    <button id="refreshBtn">🔄 Refresh</button>
+                    <button id="exportBtn">💾 Export as Image</button>
+                </div>
+            </div>
+            <canvas id="visualization" width="800" height="200"></canvas>
+            <div id="visualizationInfo" style="margin-top: 10px; font-size: 0.85rem; color: #94a3b8;"></div>
+        </div>
+        
+        <!-- ADDITIONAL DATA -->
+        <div class="card">
+            <h2 class="card-title">📈 PERFORMANCE METRICS</h2>
+            <div id="performanceData" class="loading">Calculating performance metrics...</div>
+        </div>
+        
+        <!-- PRIVACY STATUS -->
+        <div class="card">
+            <h2 class="card-title">🛡️ PRIVACY STATUS</h2>
+            <div id="privacyData" class="loading">Analyzing privacy settings...</div>
+        </div>
+    </div>
+    
+    <div class="disclaimer">
+        <strong>⚠️ IMPORTANT DISCLAIMER:</strong> This tool runs entirely in your browser. Network data is obtained via public APIs. 
+        Simulated data is generated algorithmically and is NOT real personal information. 
+        No data is stored or transmitted to any server except for API requests necessary for functionality.
+    </div>
+    
+    <div class="footer">
+        <p>Built with a single HTML file • Hosted on GitHub Pages • Updated: <span id="currentDate"></span></p>
+        <p>Repository: <a href="https://github.com/ventouswins/mydetails" style="color: var(--terminal);">ventouswins/mydetails</a></p>
+    </div>
+
+    <script>
+        // =========== CONFIGURATION ===========
+        const GITHUB_REPO = 'ventouswins/mydetails';
+        const REFRESH_INTERVAL = 60000; // 60 seconds
+        
+        // =========== STATE MANAGEMENT ===========
+        let currentData = {
+            network: null,
+            browser: null,
+            github: null,
+            simulated: null,
+            performance: null
+        };
+        
+        let visualizationInterval;
+        
+        // =========== REAL DATA FUNCTIONS ===========
+        
+        // 1. Real Network Data
+        async function fetchRealNetworkData() {
+            try {
+                const networkStartTime = performance.now();
+                
+                // Get IP address
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                
+                // Get geolocation (using API with CORS enabled)
+                const geoRes = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
+                const geoData = await geoRes.json();
+                
+                // Measure latency
+                const latencyStart = performance.now();
+                await fetch('https://api.ipify.org?format=json', {cache: 'no-store'});
+                const latency = Math.round(performance.now() - latencyStart);
+                
+                // Get network information
+                const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                const networkType = connection ? connection.effectiveType : 'Unknown';
+                const downlink = connection ? connection.downlink + ' Mbps' : 'Unknown';
+                
+                const networkHTML = `
+                    <div class="data-grid">
+                        <div class="data-point">
+                            <strong>🌐 Public IP:</strong> ${geoData.ip || ipData.ip}
+                            <button class="copy-btn" onclick="copyToClipboard('${geoData.ip || ipData.ip}')">Copy</button>
+                        </div>
+                        <div class="data-point">
+                            <strong>📍 Location:</strong> ${geoData.city ? `${geoData.city}, ${geoData.country_name}` : 'Not available'}
+                        </div>
+                        <div class="data-point">
+                            <strong>🏢 ISP:</strong> ${geoData.org || 'Unknown'}
+                        </div>
+                        <div class="data-point">
+                            <strong>📶 Network:</strong> ${networkType} (${downlink})
+                        </div>
+                        <div class="data-point">
+                            <strong>⚡ Latency:</strong> ${latency}ms
+                        </div>
+                        <div class="data-point">
+                            <strong>🕐 Timezone:</strong> ${geoData.timezone || 'Unknown'}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('networkData').innerHTML = networkHTML;
+                
+                currentData.network = {
+                    ip: geoData.ip || ipData.ip,
+                    location: geoData.city ? `${geoData.city}, ${geoData.country_name}` : null,
+                    isp: geoData.org,
+                    latency,
+                    networkType,
+                    fetchTime: performance.now() - networkStartTime
+                };
+                
+                return currentData.network;
+                
+            } catch (error) {
+                document.getElementById('networkData').innerHTML = 
+                    `<div class="data-point">⚠️ Error fetching network data: ${error.message}</div>`;
+                return null;
+            }
+        }
+        
+        // 2. Real Browser Data
+        function getRealBrowserData() {
+            const startTime = performance.now();
+            
+            const data = {
+                screen: `${screen.width}×${screen.height} (Viewport: ${window.innerWidth}×${window.innerHeight})`,
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                languages: navigator.languages.join(', '),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
+                cookies: navigator.cookieEnabled,
+                online: navigator.onLine,
+                deviceMemory: navigator.deviceMemory || 'Unknown',
+                cores: navigator.hardwareConcurrency,
+                maxTouchPoints: navigator.maxTouchPoints || 0,
+                pdfViewerEnabled: navigator.pdfViewerEnabled || false
+            };
+            
+            const browserHTML = `
+                <div class="data-grid">
+                    <div class="data-point">
+                        <strong>📱 Resolution:</strong> ${data.screen}
+                    </div>
+                    <div class="data-point">
+                        <strong>🌍 Timezone:</strong> ${data.timezone}
+                    </div>
+                    <div class="data-point">
+                        <strong>🗣️ Language:</strong> ${data.language}
+                    </div>
+                    <div class="data-point">
+                        <strong>🌙 Dark Mode:</strong> ${data.darkMode ? 'Enabled' : 'Disabled'}
+                    </div>
+                    <div class="data-point">
+                        <strong>🧠 CPU Cores:</strong> ${data.cores}
+                    </div>
+                    <div class="data-point">
+                        <strong>📱 Device Memory:</strong> ${data.deviceMemory} GB
+                    </div>
+                    <div class="data-point">
+                        <strong>🔗 Connection:</strong> 
+                        <span class="status-indicator ${data.online ? 'status-online' : 'status-offline'}"></span>
+                        ${data.online ? 'Online' : 'Offline'}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('browserData').innerHTML = browserHTML;
+            
+            currentData.browser = {
+                ...data,
+                fetchTime: performance.now() - startTime
+            };
+            
+            return currentData.browser;
+        }
+        
+        // 3. GitHub Data
+        async function fetchGitHubData() {
+            try {
+                const startTime = performance.now();
+                
+                // Fetch repository data
+                const repoRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`);
+                const repoData = await repoRes.json();
+                
+                // Fetch recent commits
+                const commitsRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=3`);
+                const commits = await commitsRes.json();
+                
+                // Fetch repository languages
+                const langsRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/languages`);
+                const languages = await langsRes.json();
+                
+                const githubHTML = `
+                    <div class="data-grid">
+                        <div class="data-point">
+                            <strong>📦 Repository:</strong> 
+                            <a href="${repoData.html_url}" style="color: var(--terminal);">${repoData.full_name}</a>
+                        </div>
+                        <div class="data-point">
+                            <strong>⭐ Stars:</strong> ${repoData.stargazers_count}
+                        </div>
+                        <div class="data-point">
+                            <strong>📅 Last Updated:</strong> ${new Date(repoData.updated_at).toLocaleDateString()}
+                        </div>
+                        <div class="data-point">
+                            <strong>👁️ Watchers:</strong> ${repoData.watchers_count}
+                        </div>
+                        <div class="data-point">
+                            <strong>🍴 Forks:</strong> ${repoData.forks_count}
+                        </div>
+                        <div class="data-point">
+                            <strong>📝 Description:</strong> ${repoData.description || 'No description'}
+                        </div>
+                        ${Object.keys(languages).length > 0 ? `
+                        <div class="data-point">
+                            <strong>💻 Languages:</strong> ${Object.keys(languages).join(', ')}
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                document.getElementById('githubData').innerHTML = githubHTML;
+                
+                currentData.github = {
+                    ...repoData,
+                    languages: Object.keys(languages),
+                    fetchTime: performance.now() - startTime
+                };
+                
+            } catch (error) {
+                document.getElementById('githubData').innerHTML = 
+                    `<div class="data-point">⚠️ Error fetching GitHub data. Make sure the repository exists and is public.</div>`;
+            }
+        }
+        
+        // 4. Performance Metrics
+        function calculatePerformanceMetrics() {
+            const metrics = {
+                loadTime: performance.timing ? 
+                    performance.timing.loadEventEnd - performance.timing.navigationStart : 
+                    'N/A',
+                memory: performance.memory ? {
+                    used: Math.round(performance.memory.usedJSHeapSize / 1048576),
+                    total: Math.round(performance.memory.totalJSHeapSize / 1048576),
+                    limit: Math.round(performance.memory.jsHeapSizeLimit / 1048576)
+                } : null,
+                paintMetrics: {}
+            };
+            
+            // Get paint timing if available
+            if (performance.getEntriesByType) {
+                const paintEntries = performance.getEntriesByType('paint');
+                paintEntries.forEach(entry => {
+                    metrics.paintMetrics[entry.name] = Math.round(entry.startTime);
+                });
+            }
+            
+            const perfHTML = `
+                <div class="data-grid">
+                    <div class="data-point">
+                        <strong>🚀 Page Load:</strong> ${typeof metrics.loadTime === 'number' ? metrics.loadTime + 'ms' : 'N/A'}
+                    </div>
+                    ${metrics.memory ? `
+                    <div class="data-point">
+                        <strong>🧠 Memory Usage:</strong> ${metrics.memory.used}MB / ${metrics.memory.total}MB
+                    </div>
+                    ` : ''}
+                    ${metrics.paintMetrics['first-paint'] ? `
+                    <div class="data-point">
+                        <strong>🎨 First Paint:</strong> ${metrics.paintMetrics['first-paint']}ms
+                    </div>
+                    ` : ''}
+                    <div class="data-point">
+                        <strong>📊 Data Points:</strong> ${Object.keys(currentData).filter(k => currentData[k]).length} collected
+                    </div>
+                    <div class="data-point">
+                        <strong>🔄 Last Refresh:</strong> <span id="lastRefreshTime">Just now</span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('performanceData').innerHTML = perfHTML;
+            
+            currentData.performance = metrics;
+            return metrics;
+        }
+        
+        // 5. Privacy Analysis
+        function analyzePrivacy() {
+            const privacyChecks = {
+                'Do Not Track': navigator.doNotTrack === '1',
+                'Third-Party Cookies': !navigator.cookieEnabled,
+                'Local Storage': (() => {
+                    try {
+                        localStorage.setItem('test', 'test');
+                        localStorage.removeItem('test');
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                })(),
+                'Session Storage': (() => {
+                    try {
+                        sessionStorage.setItem('test', 'test');
+                        sessionStorage.removeItem('test');
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                })(),
+                'IndexedDB': 'indexedDB' in window,
+                'Service Workers': 'serviceWorker' in navigator,
+                'Geolocation': 'geolocation' in navigator,
+                'Notifications': 'Notification' in window
+            };
+            
+            const enabledCount = Object.values(privacyChecks).filter(v => v).length;
+            const totalCount = Object.keys(privacyChecks).length;
+            const privacyScore = Math.round((enabledCount / totalCount) * 100);
+            
+            const privacyHTML = `
+                <div class="data-grid">
+                    <div class="data-point">
+                        <strong>🛡️ Privacy Score:</strong> ${privacyScore}/100
+                        <div style="width: 100%; height: 6px; background: #334155; margin-top: 5px; border-radius: 3px;">
+                            <div style="width: ${privacyScore}%; height: 100%; background: ${privacyScore > 70 ? '#10b981' : privacyScore > 40 ? '#f59e0b' : '#ef4444'}; border-radius: 3px;"></div>
+                        </div>
+                    </div>
+                    <div class="data-point">
+                        <strong>📊 Features Enabled:</strong> ${enabledCount} of ${totalCount}
+                    </div>
+                    <div class="data-point">
+                        <strong>📍 Geolocation:</strong> ${privacyChecks['Geolocation'] ? 'Available' : 'Not available'}
+                    </div>
+                    <div class="data-point">
+                        <strong>🍪 Cookies:</strong> ${privacyChecks['Third-Party Cookies'] ? 'Disabled' : 'Enabled'}
+                    </div>
+                    <div class="data-point">
+                        <strong>🚫 Do Not Track:</strong> ${privacyChecks['Do Not Track'] ? 'Enabled' : 'Disabled'}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('privacyData').innerHTML = privacyHTML;
+            return privacyChecks;
+        }
+        
+        // =========== SIMULATED DATA FUNCTIONS ===========
+        function generateSimulatedData(realNetworkData) {
+            const startTime = performance.now();
+            
+            // Use real data as seed for deterministic generation
+            const seed = realNetworkData ? 
+                realNetworkData.ip.split('').reduce((a, b) => a + b.charCodeAt(0), 0) : 
+                Math.random() * 10000;
+            
+            const behaviors = ['Morning Browser', 'Night Owl', 'Power User', 'Casual Surfer'];
+            const techProfiles = ['Early Adopter', 'Mainstream User', 'Conservative', 'Tech Enthusiast'];
+            const interests = ['Technology', 'Gaming', 'Productivity', 'Social Media', 'News', 'Entertainment'];
+            
+            const simulated = {
+                digitalFingerprint: `DF-${Math.abs(seed).toString(16).substring(0, 8).toUpperCase()}`,
+                behaviorPattern: behaviors[Math.abs(seed) % behaviors.length],
+                techProfile: techProfiles[Math.abs(seed) % techProfiles.length],
+                inferredInterests: [
+                    interests[Math.abs(seed) % interests.length],
+                    interests[(Math.abs(seed) + 1) % interests.length],
+                    interests[(Math.abs(seed) + 2) % interests.length]
+                ],
+                activityPeak: Math.abs(seed) % 24,
+                securityScore: 70 + (Math.abs(seed) % 30),
+                dataGenerated: new Date().toISOString().split('T')[0]
+            };
+            
+            const simulatedHTML = `
+                <div class="data-grid">
+                    <div class="data-point">
+                        <strong>🔑 Digital Fingerprint:</strong> ${simulated.digitalFingerprint}
+                    </div>
+                    <div class="data-point">
+                        <strong>📊 Behavior Pattern:</strong> ${simulated.behaviorPattern}
+                    </div>
+                    <div class="data-point">
+                        <strong>👤 Tech Profile:</strong> ${simulated.techProfile}
+                    </div>
+                    <div class="data-point">
+                        <strong>🎯 Inferred Interests:</strong> ${simulated.inferredInterests.join(', ')}
+                    </div>
+                    <div class="data-point">
+                        <strong>⏰ Peak Activity:</strong> ${simulated.activityPeak}:00 UTC
+                    </div>
+                    <div class="data-point">
+                        <strong>🛡️ Security Score:</strong> ${simulated.securityScore}/100
+                    </div>
+                    <div class="data-point" style="font-size: 0.85rem; color: #94a3b8;">
+                        <em>Note: This is algorithmically generated data for demonstration purposes only.</em>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('simulatedData').innerHTML = simulatedHTML;
+            
+            currentData.simulated = {
+                ...simulated,
+                generationTime: performance.now() - startTime
+            };
+            
+            return currentData.simulated;
+        }
+        
+        // =========== VISUALIZATION ===========
+        function createVisualization() {
+            const canvas = document.getElementById('visualization');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw gradient background
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, 'rgba(37, 99, 235, 0.1)');
+            gradient.addColorStop(1, 'rgba(124, 58, 237, 0.1)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw real data signal (blue)
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for(let i = 0; i < canvas.width; i++) {
+                const x = i;
+                const y = 80 + Math.sin(i * 0.03 + Date.now() * 0.001) * 40;
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Draw simulated data signal (purple)
+            ctx.strokeStyle = '#7c3aed';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            for(let i = 0; i < canvas.width; i++) {
+                const x = i;
+                const y = 120 + Math.cos(i * 0.04 + Date.now() * 0.0008) * 30;
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw data points
+            if (currentData.network && currentData.simulated) {
+                // Network latency indicator
+                const latencyHeight = Math.min(currentData.network.latency / 10, 50);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(50, 150 - latencyHeight, 20, latencyHeight);
+                
+                // Privacy score indicator
+                const privacyScore = currentData.simulated.securityScore;
+                const privacyHeight = privacyScore / 2;
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(100, 150 - privacyHeight, 20, privacyHeight);
+                
+                // Add labels
+                ctx.fillStyle = '#e2e8f0';
+                ctx.font = '10px monospace';
+                ctx.fillText('Latency', 45, 170);
+                ctx.fillText('Security', 95, 170);
+            }
+            
+            // Update visualization info
+            const info = document.getElementById('visualizationInfo');
+            if (info) {
+                info.innerHTML = `
+                    Real data signal (blue) • Simulated profile (purple) • 
+                    Last update: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                `;
+            }
+        }
+        
+        // =========== UTILITY FUNCTIONS ===========
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard: ' + text);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+        
+        function exportAsImage() {
+            const canvas = document.getElementById('visualization');
+            const link = document.createElement('a');
+            link.download = 'digital-footprint-' + new Date().toISOString().split('T')[0] + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function updateLastRefreshTime() {
+            const element = document.getElementById('lastRefreshTime');
+            if (element) {
+                element.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            }
+        }
+        
+        // =========== INITIALIZATION ===========
+        async function initializeApp() {
+            try {
+                // Set current date
+                document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
+                
+                // Get browser data immediately
+                getRealBrowserData();
+                analyzePrivacy();
+                
+                // Fetch async data
+                const networkData = await fetchRealNetworkData();
+                await fetchGitHubData();
+                
+                // Generate simulated data based on real data
+                generateSimulatedData(networkData);
+                
+                // Calculate performance metrics
+                calculatePerformanceMetrics();
+                
+                // Update last refresh time
+                updateLastRefreshTime();
+                
+                // Start visualization animation
+                visualizationInterval = setInterval(createVisualization, 50);
+                
+                // Setup event listeners
+                document.getElementById('refreshBtn').addEventListener('click', refreshData);
+                document.getElementById('exportBtn').addEventListener('click', exportAsImage);
+                
+                // Auto-refresh every minute
+                setInterval(refreshData, REFRESH_INTERVAL);
+                
+                console.log('App initialized successfully');
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+            }
+        }
+        
+        async function refreshData() {
+            try {
+                console.log('Refreshing data...');
+                
+                // Update network data
+                await fetchRealNetworkData();
+                
+                // Update browser data
+                getRealBrowserData();
+                
+                // Update GitHub data
+                await fetchGitHubData();
+                
+                // Update simulated data
+                generateSimulatedData(currentData.network);
+                
+                // Update performance metrics
+                calculatePerformanceMetrics();
+                
+                // Update privacy analysis
+                analyzePrivacy();
+                
+                // Update timestamp
+                updateLastRefreshTime();
+                
+                console.log('Data refreshed successfully');
+                
+            } catch (error) {
+                console.error('Refresh error:', error);
+            }
+        }
+        
+        // =========== START APPLICATION ===========
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                refreshData();
+            }
+        });
+    </script>
+</body>
+</html>
